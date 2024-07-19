@@ -83,7 +83,7 @@ impl<B: Backend> AgzActionModel<B> {
         ];
 
         let dense_common = vec![
-            LinearConfig::new(WIDE_LEN + DEEP_OUT_LEN, 64).init(device),
+            LinearConfig::new(DEEP_OUT_LEN, 64).init(device),
             LinearConfig::new(64, 32).init(device),
         ];
 
@@ -109,19 +109,15 @@ impl<B: Backend> AgzActionModel<B> {
         // Wide features that will pass through to the dense layers directly
         // [batch,wide_feat]
         let batches = features.dims()[0];
-        let wide = features.clone().slice([0..batches, 0..WIDE_LEN]);
 
         // Input features to the 2d convolution
         // [batch,conv_feat,x,y]
-        let mut deep = features.slice([0..batches, WIDE_LEN..FEATS_LEN]).reshape([
+        let mut deep = features.reshape([
             batches as i32,
             BASE_CONV_FEATS as i32,
             DEEP_HEIGHT as i32,
             DEEP_WIDTH as i32,
         ]);
-
-        // Batch norm
-        // deep = self.bn.forward(deep);
 
         for (i, conv) in self.convs.iter().enumerate() {
             deep = relu(conv.forward(deep));
@@ -134,10 +130,7 @@ impl<B: Backend> AgzActionModel<B> {
         // [batch,deep_feat]
         let deep_flat: Tensor<B, 2> = deep.reshape([batches as i32, DEEP_OUT_LEN as i32]);
 
-        // [batch,feat]
-        let wide_and_deep = Tensor::cat(vec![wide, deep_flat], 1);
-
-        let mut out_common = wide_and_deep;
+        let mut out_common = deep_flat;
         for d in &self.dense_common {
             out_common = d.forward(out_common);
         }
@@ -181,16 +174,17 @@ impl<B: Backend> AgzActionModel<B> {
 fn main() {
     let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
 
-    let possible_actions = 32usize;
-
     let dropout_config = DropoutConfig { prob: P_DROPOUT };
 
     let model: AgzActionModel<Wgpu> =
-        AgzActionModel::init(possible_actions, dropout_config, &device);
+        AgzActionModel::init(POSSIBLE_ACTIONS, dropout_config, &device);
 
     for _ in 0..usize::MAX {
-        let x: Tensor<Wgpu, 2> =
-            Tensor::random([1, FEATS_LEN], Distribution::Uniform(0.0, 1.0), &device);
+        let x: Tensor<Wgpu, 2> = Tensor::random(
+            [2048, DEEP_IN_LEN],
+            Distribution::Uniform(0.0, 1.0),
+            &device,
+        );
         let _v = model.evaluate_tensors(x);
     }
 }
