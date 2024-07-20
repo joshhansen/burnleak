@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { version = "0.13", default-features = false, features = ["autotune", "fusion", "metrics", "train", "tui", "wgpu"] }
+burn = { version = "0.13", default-features = false, features = ["fusion", "metrics", "train", "tui", "wgpu"] }
