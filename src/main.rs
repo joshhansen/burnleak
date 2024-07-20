@@ -3,7 +3,6 @@ use burn::{
     nn::{Linear, LinearConfig},
     tensor::{activation::sigmoid, backend::Backend, Device, Distribution, Tensor},
 };
-use num_traits::ToPrimitive;
 
 const BATCH_SIZE: usize = 2048;
 
@@ -25,19 +24,6 @@ impl<B: Backend> Model<B> {
     fn forward(&self, features: Tensor<B, 2>) -> Tensor<B, 2> {
         sigmoid(self.dense.forward(features))
     }
-
-    fn forward_to_vec(&self, features: Tensor<B, 2>) -> Vec<f32> {
-        debug_assert_eq!(features.dims()[0], 1);
-
-        let result_tensor = self.forward(features);
-
-        result_tensor
-            .into_data()
-            .value
-            .into_iter()
-            .map(|x| x.to_f32().unwrap())
-            .collect()
-    }
 }
 
 fn main() {
@@ -48,6 +34,6 @@ fn main() {
     loop {
         let x: Tensor<Wgpu, 2> =
             Tensor::random([BATCH_SIZE, IN], Distribution::Uniform(0.0, 1.0), &device);
-        let _v = model.forward_to_vec(x);
+        let _v = model.forward(x);
     }
 }
