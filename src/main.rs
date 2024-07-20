@@ -46,7 +46,6 @@ const DEEP_OUT_LEN: usize = DEEP_OUT_TILES * POSSIBLE_ACTIONS * PER_ACTION_CHANN
 struct AgzActionModel<B: Backend> {
     convs: Vec<Conv2d<B>>,
     dense_common: Vec<Linear<B>>,
-    dense_per_action: Vec<Vec<Linear<B>>>,
 }
 
 impl<B: Backend> AgzActionModel<B> {
@@ -64,23 +63,12 @@ impl<B: Backend> AgzActionModel<B> {
 
         let dense_common = vec![
             LinearConfig::new(DEEP_OUT_LEN, 64).init(device),
-            LinearConfig::new(64, 32).init(device),
+            LinearConfig::new(64, POSSIBLE_ACTIONS).init(device),
         ];
-
-        let dense_per_action = (0..POSSIBLE_ACTIONS)
-            .map(|_| {
-                vec![
-                    LinearConfig::new(32, 16).init(device),
-                    LinearConfig::new(16, 8).init(device),
-                    LinearConfig::new(8, 1).init(device),
-                ]
-            })
-            .collect();
 
         AgzActionModel {
             convs,
             dense_common,
-            dense_per_action,
         }
     }
 
@@ -111,21 +99,7 @@ impl<B: Backend> AgzActionModel<B> {
             out_common = d.forward(out_common);
         }
 
-        let out: Vec<Tensor<B, 2>> = (0..POSSIBLE_ACTIONS)
-            .map(|action_idx| {
-                let mut out = out_common.clone();
-                for (i, dense) in self.dense_per_action[action_idx].iter().enumerate() {
-                    out = dense.forward(out);
-                    // Only relu non-finally
-                    if i < self.dense_per_action[action_idx].len() - 1 {
-                        out = relu(out);
-                    }
-                }
-                out
-            })
-            .collect();
-
-        let action_probs = Tensor::cat(out, 1);
+        let action_probs = out_common;
 
         debug_assert_eq!(action_probs.dims().len(), 2);
         debug_assert_eq!(action_probs.dims()[0], batches);
