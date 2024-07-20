@@ -1,5 +1,5 @@
 use burn::{
-    backend::{wgpu::WgpuDevice, Wgpu},
+    backend::{ndarray::NdArrayDevice, NdArray},
     nn::{Linear, LinearConfig},
     tensor::{activation::sigmoid, backend::Backend, Device, Distribution, Tensor},
 };
@@ -27,12 +27,12 @@ impl<B: Backend> Model<B> {
 }
 
 fn main() {
-    let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
+    let device: Device<NdArray> = NdArrayDevice::Cpu;
 
-    let model: Model<Wgpu> = Model::init(&device);
+    let model: Model<NdArray> = Model::init(&device);
 
     loop {
-        let x: Tensor<Wgpu, 2> =
+        let x: Tensor<NdArray, 2> =
             Tensor::random([BATCH_SIZE, IN], Distribution::Uniform(0.0, 1.0), &device);
         let _v = model.forward(x);
     }
