@@ -92,20 +92,17 @@ impl<B: Backend> AgzActionModel<B> {
 
         // Reshape back to vector
         // [batch,deep_feat]
-        let deep_flat: Tensor<B, 2> = deep.reshape([batches as i32, DEEP_OUT_LEN as i32]);
+        let mut out: Tensor<B, 2> = deep.reshape([batches as i32, DEEP_OUT_LEN as i32]);
 
-        let mut out_common = deep_flat;
         for d in &self.dense_common {
-            out_common = d.forward(out_common);
+            out = d.forward(out);
         }
 
-        let action_probs = out_common;
+        debug_assert_eq!(out.dims().len(), 2);
+        debug_assert_eq!(out.dims()[0], batches);
+        debug_assert_eq!(out.dims()[1], POSSIBLE_ACTIONS);
 
-        debug_assert_eq!(action_probs.dims().len(), 2);
-        debug_assert_eq!(action_probs.dims()[0], batches);
-        debug_assert_eq!(action_probs.dims()[1], POSSIBLE_ACTIONS);
-
-        sigmoid(action_probs)
+        sigmoid(out)
     }
 
     /// [batch,feat]
@@ -126,7 +123,7 @@ fn main() {
 
     let model: AgzActionModel<Wgpu> = AgzActionModel::init(POSSIBLE_ACTIONS, &device);
 
-    for _ in 0..usize::MAX {
+    loop {
         let x: Tensor<Wgpu, 2> = Tensor::random(
             [2048, DEEP_IN_LEN],
             Distribution::Uniform(0.0, 1.0),
