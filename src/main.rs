@@ -1,14 +1,7 @@
 use burn::{
     backend::{wgpu::WgpuDevice, Wgpu},
-    nn::{
-        conv::{Conv2d, Conv2dConfig},
-        Linear, LinearConfig,
-    },
-    tensor::{
-        activation::{relu, sigmoid},
-        backend::Backend,
-        Device, Distribution, Tensor,
-    },
+    nn::{Linear, LinearConfig},
+    tensor::{activation::sigmoid, backend::Backend, Device, Distribution, Tensor},
 };
 use num_traits::ToPrimitive;
 
@@ -25,18 +18,9 @@ const POSSIBLE_UNIT_ACTIONS: usize = POSSIBLE_DIRECTIONS + 2; // plus skip and d
 
 const POSSIBLE_ACTIONS: usize = POSSIBLE_CITY_ACTIONS + POSSIBLE_UNIT_ACTIONS;
 
-const DEEP_WIDTH: usize = 15;
-const DEEP_HEIGHT: usize = 15;
-const DEEP_TILES: usize = DEEP_WIDTH * DEEP_HEIGHT;
-
 const DEEP_OUT_WIDTH: usize = 3;
 const DEEP_OUT_HEIGHT: usize = 3;
 const DEEP_OUT_TILES: usize = DEEP_OUT_WIDTH * DEEP_OUT_HEIGHT;
-
-/// Number of "channels" in convolution output
-const BASE_CONV_FEATS: usize = 20;
-
-const DEEP_IN_LEN: usize = DEEP_TILES * BASE_CONV_FEATS;
 
 const PER_ACTION_CHANNELS: usize = 1;
 
@@ -44,32 +28,17 @@ const PER_ACTION_CHANNELS: usize = 1;
 const DEEP_OUT_LEN: usize = DEEP_OUT_TILES * POSSIBLE_ACTIONS * PER_ACTION_CHANNELS;
 
 struct AgzActionModel<B: Backend> {
-    convs: Vec<Conv2d<B>>,
     dense_common: Vec<Linear<B>>,
 }
 
 impl<B: Backend> AgzActionModel<B> {
-    fn init(possible_actions: usize, device: &B::Device) -> AgzActionModel<B> {
-        let channels = possible_actions * PER_ACTION_CHANNELS;
-
-        let convs = vec![
-            Conv2dConfig::new([BASE_CONV_FEATS, channels], [3, 3]).init(device), // -> 13x13
-            Conv2dConfig::new([channels, channels], [3, 3]).init(device),        // -> 11x11
-            Conv2dConfig::new([channels, channels], [3, 3]).init(device),        // -> 9x9
-            Conv2dConfig::new([channels, channels], [3, 3]).init(device),        // -> 7x7
-            Conv2dConfig::new([channels, channels], [3, 3]).init(device),        // -> 5x5
-            Conv2dConfig::new([channels, channels], [3, 3]).init(device),        // -> 3x3
-        ];
-
+    fn init(device: &B::Device) -> AgzActionModel<B> {
         let dense_common = vec![
             LinearConfig::new(DEEP_OUT_LEN, 64).init(device),
             LinearConfig::new(64, POSSIBLE_ACTIONS).init(device),
         ];
 
-        AgzActionModel {
-            convs,
-            dense_common,
-        }
+        AgzActionModel { dense_common }
     }
 
     fn forward(&self, features: Tensor<B, 2>) -> Tensor<B, 2> {
@@ -77,22 +46,7 @@ impl<B: Backend> AgzActionModel<B> {
         // [batch,wide_feat]
         let batches = features.dims()[0];
 
-        // Input features to the 2d convolution
-        // [batch,conv_feat,x,y]
-        let mut deep = features.reshape([
-            batches as i32,
-            BASE_CONV_FEATS as i32,
-            DEEP_HEIGHT as i32,
-            DEEP_WIDTH as i32,
-        ]);
-
-        for conv in self.convs.iter() {
-            deep = relu(conv.forward(deep));
-        }
-
-        // Reshape back to vector
-        // [batch,deep_feat]
-        let mut out: Tensor<B, 2> = deep.reshape([batches as i32, DEEP_OUT_LEN as i32]);
+        let mut out = features;
 
         for d in &self.dense_common {
             out = d.forward(out);
@@ -121,11 +75,11 @@ impl<B: Backend> AgzActionModel<B> {
 fn main() {
     let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
 
-    let model: AgzActionModel<Wgpu> = AgzActionModel::init(POSSIBLE_ACTIONS, &device);
+    let model: AgzActionModel<Wgpu> = AgzActionModel::init(&device);
 
     loop {
         let x: Tensor<Wgpu, 2> = Tensor::random(
-            [2048, DEEP_IN_LEN],
+            [2048, DEEP_OUT_LEN],
             Distribution::Uniform(0.0, 1.0),
             &device,
         );
