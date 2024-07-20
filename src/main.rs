@@ -28,29 +28,22 @@ const PER_ACTION_CHANNELS: usize = 1;
 const DEEP_OUT_LEN: usize = DEEP_OUT_TILES * POSSIBLE_ACTIONS * PER_ACTION_CHANNELS;
 
 struct AgzActionModel<B: Backend> {
-    dense_common: Vec<Linear<B>>,
+    dense: Linear<B>,
 }
 
 impl<B: Backend> AgzActionModel<B> {
-    fn init(device: &B::Device) -> AgzActionModel<B> {
-        let dense_common = vec![
-            LinearConfig::new(DEEP_OUT_LEN, 64).init(device),
-            LinearConfig::new(64, POSSIBLE_ACTIONS).init(device),
-        ];
-
-        AgzActionModel { dense_common }
+    fn init(device: &B::Device) -> Self {
+        AgzActionModel {
+            dense: LinearConfig::new(DEEP_OUT_LEN, POSSIBLE_ACTIONS).init(device),
+        }
     }
 
     fn forward(&self, features: Tensor<B, 2>) -> Tensor<B, 2> {
-        // Wide features that will pass through to the dense layers directly
-        // [batch,wide_feat]
         let batches = features.dims()[0];
 
         let mut out = features;
 
-        for d in &self.dense_common {
-            out = d.forward(out);
-        }
+        out = self.dense.forward(out);
 
         debug_assert_eq!(out.dims().len(), 2);
         debug_assert_eq!(out.dims()[0], batches);
