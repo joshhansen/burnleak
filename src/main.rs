@@ -28,6 +28,7 @@ impl<B: Backend> Model<B> {
 
 fn main() {
     let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
+    // let device: Device<Wgpu> = WgpuDevice::Cpu;
 
     let model: Model<Wgpu> = Model::init(&device);
 
