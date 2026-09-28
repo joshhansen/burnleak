@@ -5,3 +5,13 @@ edition = "2021"
 
 [dependencies]
 burn = { version = "0.21", default-features = false, features = ["train", "wgpu"] }
+
+[profile.release-asserting]
+inherits = "release"
+debug-assertions = true
+overflow-checks = true
+
+[profile.release-final]
+inherits = "release"
+codegen-units = 1
+lto = "thin"
