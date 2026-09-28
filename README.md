@@ -2,9 +2,8 @@
 
 Demonstrates a memory leak in the Wgpu backend of Burn
 
-Branches:
-* master: `cargo run --release` to see a steady memory leak
-* master_ndarray: `cargo run --release` to see no memory leak
+`cargo build --profile release-final`
 
-On `master`, setting the device as WgpuDevice::Cpu results in a much slower, but still existing leak. But the bulk of the
-leak seems to step from the use of the discrete GPU.
+`./target/release-final/burnleak`
+
+On my system (Debian 13 Linux, RTX 6000 Ada discrete GPU) after about 5 days this resulted in 17.9GB of resident and 24.3GB of virtual memory beint utilized by `burnleak`.
