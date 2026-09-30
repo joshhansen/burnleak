@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { version = "0.21", default-features = false, features = ["train", "wgpu"] }
+burn = { version = "0.21", default-features = false, features = ["train"] }
 
 [profile.release-asserting]
 inherits = "release"
@@ -15,3 +15,10 @@ overflow-checks = true
 inherits = "release"
 codegen-units = 1
 lto = "thin"
+
+[features]
+default = ["wgpu"]
+
+flex = ["burn/flex"]
+
+wgpu = ["burn/wgpu"]

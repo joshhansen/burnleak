@@ -308,6 +308,7 @@ dependencies = [
  "burn-autodiff",
  "burn-core",
  "burn-dispatch",
+ "burn-flex",
  "burn-nn",
  "burn-optim",
  "burn-std",
@@ -460,6 +461,7 @@ checksum = "c2087b9e12323e0d25cc0ebdccfee40427dfdec4a23fa6d3f49ba2aa1f94ac17"
 dependencies = [
  "burn-autodiff",
  "burn-backend",
+ "burn-flex",
  "burn-wgpu",
  "paste",
 ]
@@ -598,6 +600,7 @@ dependencies = [
  "aligned-vec",
  "bon",
  "burn-cubecl",
+ "burn-flex",
  "burn-ir",
  "burn-tensor",
  "bytemuck",

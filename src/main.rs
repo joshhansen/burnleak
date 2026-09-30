@@ -1,5 +1,4 @@
 use burn::{
-    backend::{wgpu::WgpuDevice, Wgpu},
     nn::{Linear, LinearConfig},
     tensor::{activation::sigmoid, backend::Backend, Device, Tensor},
 };
@@ -26,16 +25,32 @@ impl<B: Backend> Model<B> {
     }
 }
 
-fn main() {
-    let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
-    // let device: Device<Wgpu> = WgpuDevice::Cpu;
+fn leak<B: Backend>(device: &B::Device) {
+    println!("Training on device: {:?}", device);
 
-    let model: Model<Wgpu> = Model::init(&device);
+    let model: Model<B> = Model::init(device);
 
     loop {
-        // let x: Tensor<Wgpu, 2> =
-        //     Tensor::random([BATCH_SIZE, IN], Distribution::Uniform(0.0, 1.0), &device);
-        let x: Tensor<Wgpu, 2> = Tensor::ones([BATCH_SIZE, IN], &device);
+        let x: Tensor<B, 2> = Tensor::ones([BATCH_SIZE, IN], device);
         let _v = model.forward(x);
     }
+}
+
+#[cfg(feature = "flex")]
+fn main() {
+    use burn::backend::{flex::FlexDevice, Flex};
+
+    let device: Device<Flex> = FlexDevice;
+
+    leak::<Flex>(&device);
+}
+
+#[cfg(feature = "wgpu")]
+fn main() {
+    use burn::backend::{wgpu::WgpuDevice, Wgpu};
+
+    // let device: Device<Wgpu> = WgpuDevice::DiscreteGpu(0);
+    let device: Device<Wgpu> = WgpuDevice::Cpu;
+
+    leak::<Wgpu>(&device);
 }
