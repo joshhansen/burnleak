@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { version = "0.21", default-features = false, features = ["train"] }
+burn = { version = "0.22", default-features = false, features = ["train"] }
 
 [profile.release-asserting]
 inherits = "release"
